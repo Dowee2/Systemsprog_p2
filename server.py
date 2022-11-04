@@ -60,8 +60,8 @@ def client_thread(conn, addr):
     """
     # Global variables
     global num_clients
-    global notes
-    global clients
+    global command
+    global channel
 
     # Lock the thread
     lock.acquire()
@@ -73,26 +73,26 @@ def client_thread(conn, addr):
     # Print a message to the server
     print(f'Client {num_clients} connected from {addr[0]}:{addr[1]}')
 
-    # Send a message to the client
-    conn.sendall(f'You are client {num_clients}.'.encode(ENCODING))
-
+    
+    # Receive the channel from the client
+    conn.sendall('Please enter a channel: python(PY), software testing(QA), or database(DB).'.encode(ENCODING))
+    channel = conn.recv(BUFFER_SIZE).decode(ENCODING).lower()
+    
+     # Receive read, write, or quit from the client
+    conn.sendall('Would you like to read notes (R), write notes (W), or quit (Q)?'.encode(ENCODING))
+    command = conn.recv(BUFFER_SIZE).decode(ENCODING).lower()
+    
     # Add the client to the dictionary
     clients[num_clients] = conn
-
-    # Send the notes to the client
-    send_notes(conn)
-
-    # Receive data from the client
-    data = conn.recv(BUFFER_SIZE).decode(ENCODING)
-
+    
     # Loop until the client quits
-    while data != 'Q':
+    while command != 'q' and command != 'quit':
         # If the client wants to read the notes
-        if data == 'R':
+        if command == 'R':
             # Send the notes to the client
-            send_notes(conn)
+            send_notes(conn,channel)
         # If the client wants to write to the notes
-        elif data == 'W':
+        elif command == 'W':
             # Receive the channel from the client
             channel = conn.recv(BUFFER_SIZE).decode(ENCODING)
             # Receive the note from the client
@@ -114,6 +114,8 @@ def client_thread(conn, addr):
 
     # Close the connection
     conn.close()
+
+
 
 
 def send_notes(conn, channel):
