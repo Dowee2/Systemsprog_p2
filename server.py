@@ -79,8 +79,7 @@ def client_thread(conn, addr):
     channel = conn.recv(BUFFER_SIZE).decode(ENCODING).lower()
     
      # Receive read, write, or quit from the client
-    conn.sendall('Would you like to read notes (R), write notes (W), or quit (Q)?'.encode(ENCODING))
-    command = conn.recv(BUFFER_SIZE).decode(ENCODING).lower()
+    command = get_command(conn)
     
     # Add the client to the dictionary
     clients[num_clients] = conn
@@ -91,16 +90,21 @@ def client_thread(conn, addr):
         if command == 'R':
             # Send the notes to the client
             send_notes(conn,channel)
+            get_command(conn)
         # If the client wants to write to the notes
         elif command == 'W':
-            # Receive the channel from the client
-            channel = conn.recv(BUFFER_SIZE).decode(ENCODING)
-            # Receive the note from the client
+            # Ask the client for the size of note 
+            conn.sendall('Please enter the size of the data: '.encode(ENCODING))
+            size = int(conn.recv(BUFFER_SIZE).decode(ENCODING))
+            
+            # Ask the client to send note
+            conn.sendall('Send the note'.encode(ENCODING))
             note = conn.recv(BUFFER_SIZE).decode(ENCODING)
+            
             # Add the note to the notes dictionary
             notes[channel] += note
-        # Receive data from the client
-        data = conn.recv(BUFFER_SIZE).decode(ENCODING)
+            
+            command = get_command(conn)
 
     # Lock the thread
     lock.acquire()
@@ -116,7 +120,34 @@ def client_thread(conn, addr):
     conn.close()
 
 
+def get_command(connection) -> str:
+    """
+    This function will get the command from the client.
+    """
+    # Receive the command from the client
+    connection.sendall('Please enter a channel: python(PY), software testing(QA), or database(DB).'.encode(ENCODING))
+    command = connection.recv(BUFFER_SIZE).decode(ENCODING).lower()
 
+    # Return the channel
+    return command
+
+def write_notes(conn, channel):
+    """
+    This function will write the notes to the client.
+    """
+    # Global variables
+    global notes
+
+    # Write the notes to the client
+
+    if channel == 'python':
+        notes['python'] = conn.recv(BUFFER_SIZE).decode(ENCODING)
+    elif channel == 'software testing':
+        notes['software testing'] = conn.recv(BUFFER_SIZE).decode(ENCODING)
+    elif channel == 'database':
+        notes['database'] = conn.recv(BUFFER_SIZE).decode(ENCODING)
+
+ ##HERE
 
 def send_notes(conn, channel):
     """
