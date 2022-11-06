@@ -94,7 +94,7 @@ def client_thread(connection, addr):
         elif command == 'w' or command == 'write':
             # Ask the client for the size of note 
             connection.sendall('Please enter the size of the data: '.encode(ENCODING))
-            size = int(connection.recv(BUFFER_SIZE).decode(ENCODING))
+            size = connection.recv(BUFFER_SIZE).decode(ENCODING)
             
             # Ask the client to send note
             connection.sendall('Send the note'.encode(ENCODING))

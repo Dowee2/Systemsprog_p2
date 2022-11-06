@@ -17,20 +17,13 @@ def main():
         # Connect to the server
         sock.connect((HOST, PORT))
         
-        # Get the inital message from the server
-        message = sock.recv(BUFFER_SIZE).decode()
-        channel = input(message)
-        
-        # Send the channel to the server
-        sock.sendall(channel.encode(ENCODING))
-        
         while sock.recv(BUFFER_SIZE).decode(ENCODING) != 'exit':
             # Get the message from the server
-            message = sock.recv(BUFFER_SIZE).decode()
+            serverMessage = sock.recv(BUFFER_SIZE).decode()
             # Print the message
-            command = input(message)
+            clientMessage = input(serverMessage)
             # Send the message to the server
-            sock.sendall(command.encode(ENCODING))
+            sock.sendall(clientMessage.encode(ENCODING))
 
 
 if __name__ == '__main__':
