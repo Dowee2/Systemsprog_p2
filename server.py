@@ -53,14 +53,14 @@ def main():
             # Create a new thread for the client
             threading.Thread(target=client_thread, args=(connection, address)).start()
 
-
+## TODO MAKE COMMAND A GLOBAL VARIABLE
 def client_thread(connection, addr):
     """
     This function will handle the client thread.
     """
     # Global variables
     global num_clients
-
+    global command
 
     # Lock the thread
     lock.acquire()
@@ -78,35 +78,25 @@ def client_thread(connection, addr):
     channel = connection.recv(BUFFER_SIZE).decode(ENCODING).lower()
     
      # Receive read, write, or quit from the client
-    command = get_command(connection)
+    get_command(connection)
     
     # Add the client to the dictionary
     clients[num_clients] = connection
     
     # Loop until the client quits
-    while command != 'q' or command != 'quit':
+    while COMMAND != 'q' or COMMAND != 'quit':
         # If the client wants to read the notes
-        if command == 'r' or command == 'read':
+        if COMMAND == 'r' or COMMAND == 'read':
             # Send the notes to the client
             send_notes(connection,channel)
-            get_command(connection)
         # If the client wants to write to the notes
-        elif command == 'w' or command == 'write':
-            # Ask the client for the size of note 
+        elif COMMAND == 'w' or COMMAND == 'write':
             connection.sendall('Please enter the size of the data: '.encode(ENCODING))
-            size = connection.recv(BUFFER_SIZE).decode(ENCODING)
-            
-            # Ask the client to send note
-            connection.sendall('Send the note'.encode(ENCODING))
-            note = connection.recv(size).decode(ENCODING)
-            
-            # Add the note to the notes dictionary
-            notes[channel] += note
-            command = get_command(connection)
+            write_notes(connection, channel)
         else:
             # Ask the client to enter a valid command
             connection.sendall('Please enter a valid command: R, W, or Q'.encode(ENCODING))
-            command = get_command(connection)
+            get_command(connection)
 
     # Send exit message to client
     connection.sendall('exit'.encode(ENCODING))
@@ -134,27 +124,26 @@ def get_command(connection) -> str:
     connection.sendall('WHAT')
     command = connection.recv(BUFFER_SIZE).decode(ENCODING).lower()
 
-    # Return the channel
-    return command
 
-def write_notes(conn, channel):
+def write_notes(connection, channel):
     """
     This function will write the notes to the client.
     """
     # Global variables
     global notes
-
+    size = get_size(connection)
     # Write the notes to the client
     if channel == 'python':
-        notes['python'] = conn.recv(BUFFER_SIZE).decode(ENCODING)
+        notes['python'] = connection.recv(size).decode(ENCODING)
     elif channel == 'software testing':
-        notes['software testing'] = conn.recv(BUFFER_SIZE).decode(ENCODING)
+        notes['software testing'] = connection.recv(size).decode(ENCODING)
     elif channel == 'database':
-        notes['database'] = conn.recv(BUFFER_SIZE).decode(ENCODING)
-
-
-
-def send_notes(conn, channel):
+        notes['database'] = connection.recv(size).decode(ENCODING)
+        
+    get_command(connection)
+    
+    
+def send_notes(connection, channel):
     """
     This function will send the notes to the client.
     """
@@ -164,11 +153,37 @@ def send_notes(conn, channel):
     # Send the notes to the client
 
     if channel == 'python':
-        conn.sendall(notes['python'].encode(ENCODING))
+        connection.sendall(notes['python'].encode(ENCODING))
     elif channel == 'software testing':
-        conn.sendall(notes['software testing'].encode(ENCODING))
+        connection.sendall(notes['software testing'].encode(ENCODING))
     elif channel == 'database':
-        conn.sendall(notes['database'].encode(ENCODING))
+        connection.sendall(notes['database'].encode(ENCODING))
+    
+    get_command(connection)
+
+def get_size(connection) -> int:
+    """
+    This function will get the size of the note from the client.
+    """
+    valid = False
+    
+    # Get size from client
+    connection.sendall('Please enter the size of the data: '.encode(ENCODING))
+    size = connection.recv(BUFFER_SIZE).decode(ENCODING)
+    
+    # Loop until the size is valid
+    while not valid:
+        try:
+            size = int(size)
+            if size > 0 & size < 1024:
+                valid = True
+            elif size > 1024:
+                connection.sendall('Please enter a number within range 0-1024: '.encode(ENCODING))
+                size = connection.recv(BUFFER_SIZE).decode(ENCODING)
+        except ValueError:
+            connection.sendall('Please enter a number within range 0-1024 for the size.')
+            size = connection.recv(BUFFER_SIZE).decode(ENCODING)
+    return size
 
 
 if __name__ == '__main__':
