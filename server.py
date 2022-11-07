@@ -97,8 +97,9 @@ class ClientThread(threading.Thread):
         # Add the client to the dictionary
         clients[self.num_clients] = self.connection
         
+        connected = True
         # Loop until the client quits
-        while self.command != 'q' or self.command != 'quit':
+        while connected:
             # If the client wants to read the notes
             if self.command == 'r' or self.command == 'read':
                 # Send the notes to the client
@@ -107,10 +108,12 @@ class ClientThread(threading.Thread):
             elif self.command == 'w' or self.command == 'write':
                 self.connection.sendall('Size')
                 self.write_notes()
+            elif self.command == 'q' or self.command == 'quit':
+                connected = False
             else:
                 # Ask the client to enter a valid command
-                self.connection.sendall('Please enter a valid command: R, W, or Q'.encode(ENCODING))
-                self.get_command()
+                self.connection.sendall('Invalid What'.encode(ENCODING))
+                self.command = self.connection.recv(BUFFER_SIZE).decode(ENCODING).lower()
 
         # Send exit message to client
         self.connection.sendall('exit'.encode(ENCODING))
@@ -132,7 +135,7 @@ class ClientThread(threading.Thread):
         This function will get the command from the client.
         """
         # Receive the command from the client
-        self.connection.sendall('What')
+        self.connection.sendall('What'.encode(ENCODING))
         self.command = self.connection.recv(BUFFER_SIZE).decode(ENCODING).lower()
 
 
@@ -144,11 +147,11 @@ class ClientThread(threading.Thread):
         
         size = self.get_size()
         # Write the notes to the client
-        if self.channel == 'python':
+        if self.channel == 'python' or self.channel == 'py':
             notes['python'].append(self.connection.recv(size).decode(ENCODING))
-        elif self.channel == 'software testing':
+        elif self.channel == 'software testing' or self.channel == 'qa':
             notes['software testing'].append(self.connection.recv(size).decode(ENCODING))
-        elif self.channel == 'database':
+        elif self.channel == 'database' or self.channel == 'db':
             notes['database'].append(self.connection.recv(size).decode(ENCODING))
             
         self.get_command()

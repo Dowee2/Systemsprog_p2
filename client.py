@@ -19,11 +19,13 @@ def main():
         connected = True
         while connected:
             # Get the message from the server
-            server_Message = sock.recv(BUFFER_SIZE).decode()
+            test = sock.recv(BUFFER_SIZE)
+            print(test)
+            print(test.decode(ENCODING))
+            server_Message = test.decode(ENCODING)
             # Display the message from the server to the client
             if server_Message == 'exit':
                 connected = False
-                socket.close()
             elif server_Message == 'Channel':
                 handle_channel(sock)
             elif server_Message == 'What':
@@ -32,6 +34,8 @@ def main():
                 handle_write(sock)
             elif server_Message == 'Read':
                 handle_read(sock)
+            elif server_Message == 'Invalid What':
+                handle_invalid_what(sock)
 
             
             
@@ -44,9 +48,18 @@ def handle_channel(sock):
     sock.sendall(client_message.encode(ENCODING))
     
 def handle_what(sock):
-    client_message = input('Would you like to Write(W), Read(R) or Quit(Q)?')
+    """
+    This function will handle the what message.
+    """
+    client_message = input('Would you like to Write(W), Read(R) or Quit(Q)?\n')
     sock.sendall(client_message.encode(ENCODING))
-    
+
+def handle_invalid_what(sock):
+    """
+    This function will handle the invalid what message.
+    """
+    client_message = input('Please enter a valid command: R, W, or Q \n')
+    sock.sendall(client_message.encode(ENCODING))
     
 def handle_write(sock):
     """
@@ -60,8 +73,9 @@ def handle_read(sock):
     This function will handle the read message.
     """
     notes = sock.recv(BUFFER_SIZE).decode(ENCODING)
-    ## Write notes to a file
-    
+    ##Writes the recieved notes to a file and spceifies the file location
+    with open('notes\notes.txt', 'w',encoding=ENCODING) as file:
+        file.write(notes)
     
 
 if __name__ == '__main__':
