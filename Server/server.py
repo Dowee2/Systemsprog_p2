@@ -12,8 +12,9 @@ __pylint__ = 'v1.8.3'
 import socket
 import sys
 import threading
-
 import logging as logger
+import os
+from datetime import datetime
 
 # Global variables
 HOST = '127.0.0.1'
@@ -21,8 +22,9 @@ PORT = 54121
 BUFFER_SIZE = 1024
 ENCODING = 'utf-8'
 
+
 # Global dictionary to store the notes
-notes = {'python': [], 'software testing': [], 'database': []}
+#notes = {'python': [], 'software testing': [], 'database': []}
 # Global dictionary to store the clients
 clients = {}
 
@@ -103,10 +105,11 @@ class ClientThread(threading.Thread):
             # If the client wants to read the notes
             if self.command == 'r' or self.command == 'read':
                 # Send the notes to the client
+                self.connection.sendall('Read'.encode(ENCODING))
                 self.send_notes()
             # If the client wants to write to the notes
             elif self.command == 'w' or self.command == 'write':
-                self.connection.sendall('Size')
+                self.connection.sendall('Size'.encode(ENCODING))
                 self.write_notes()
             elif self.command == 'q' or self.command == 'quit':
                 connected = False
@@ -143,40 +146,61 @@ class ClientThread(threading.Thread):
         """
         This function will write the notes to the client.
         """
-        global notes
         
-        size = self.get_size()
         # Write the notes to the client
         if self.channel == 'python' or self.channel == 'py':
-            notes['python'].append(self.connection.recv(size).decode(ENCODING))
+            self.write_note_to_file('python')
         elif self.channel == 'software testing' or self.channel == 'qa':
-            notes['software testing'].append(self.connection.recv(size).decode(ENCODING))
+            self.write_note_to_file('software testing')
         elif self.channel == 'database' or self.channel == 'db':
-            notes['database'].append(self.connection.recv(size).decode(ENCODING))
+            self.write_note_to_file('database')
             
         self.get_command()
-        
+    
+    def write_note_to_file(self,directory):
+        """
+        This function will write the notes to the client.
+        """
+        size = self.get_size()
+        note = self.connection.recv(size).decode(ENCODING)
+        # Writes note to the file in the passed in directory
+        with open(f'{directory}//{self.address[0]}__{datetime.now()}.txt', 'w', encoding= ENCODING) as file:
+            file.write(note)
         
     def send_notes(self):
         """
         This function will send the notes to the client.
         """
-        global notes
-        output = ''
-        # Send the notes to the client
 
-        if self.channel == 'python':
-            for note in notes['python']:
-                output += note + '\n'
-        elif self.channel == 'software testing':
-            for note in notes['software testing']:
-                output += note + '\n'
-        elif self.channel == 'database':
-            for note in notes['database']:
-                output += note + '\n'
-        self.connection.sendall(output.encode(ENCODING))
+        if self.channel == 'python' or self.channel == 'py':
+            self.read_all_notes_in_channel('python')
+        elif self.channel == 'software testing' or self.channel == 'qa':
+            self.read_all_notes_in_channel('software testing')
+        elif self.channel == 'database' or self.channel == 'db':
+            self.read_all_notes_in_channel('database')
+
         self.get_command()
 
+    def read_all_notes_in_channel(self,directory):
+        """
+        This function will read all the notes from a specific directory.
+        """
+        # Read all the notes from the file
+        print('Reading notes...')
+        notes = ''
+        for file in os.listdir(f'{directory}'):
+            with open(f'{directory}/{file}', 'r', encoding= ENCODING) as file:
+                note_content = file.read()
+                notes += f'{file.name}<BOF>{note_content}<EOF>'
+
+        print('Notes read.')
+        self.connection.sendall(f'{notes} <EOT>'.encode(ENCODING))
+        reception = self.connection.recv(BUFFER_SIZE).decode(ENCODING)
+        if reception == 'Received':
+            print('Notes sent.')
+        else:
+            print('Error sending notes.')
+        
     def get_size(self) -> int:
         """
         This function will get the size of the note from the client.

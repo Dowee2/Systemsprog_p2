@@ -70,13 +70,24 @@ def handle_write(sock):
     
 def handle_read(sock):
     """
-    This function will handle the read message.
+    Writes the recieved notes to a file and spceifies the file location. Also prints the notes to the console
     """
-    notes = sock.recv(BUFFER_SIZE).decode(ENCODING)
-    ##Writes the recieved notes to a file and spceifies the file location
-    with open('notes\notes.txt', 'w',encoding=ENCODING) as file:
-        file.write(notes)
-    
+    notes = ''
+    while True:
+        stream = sock.recv(BUFFER_SIZE).decode(ENCODING)
+        notes += stream
+        if stream.endswith('<EOT>'):
+            sock.sendall('Received'.encode(ENCODING))
+            notes.replace('<EOT>','')
+            break
+    notes = notes.split('<EOF>')
+
+    for note in notes:
+        file_name, file_content = note.split('<BOF>')
+        print(file_content)
+        filename = file_name.split('/')[1]
+        with open(f'{filename}', 'w', encoding= ENCODING) as file:
+            file.write(file_content)
 
 if __name__ == '__main__':
     main()

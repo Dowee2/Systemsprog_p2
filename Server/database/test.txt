@@ -1,0 +1,13 @@
+Project 2
+Shared Clipboard
+Learning Outcomes
+● Practice development of Python scripts and modules.
+● Learn socket programming with Python
+● Learn to design protocol for communication between client and server
+● Learn multithreading in Python
+● Learn to integrate logging
+● Learn to use Bandit for security checks
+● Learn to use pylint for cleaner code
+● Learn exception handling
+● Learn to use mock test objects
+● Learn to use Git

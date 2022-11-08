@@ -1,0 +1,21 @@
+Overview
+Development teams often need to quickly share code snippets or other short notes with each
+other during their daily works. We need to develop a platform called “Shared Clipboard” to
+provide these facilities for team members. This project will involve creating a server program
+and a client program. Server will be installed in a server machine, while the clients will be
+installed in PCs used by developers.
+The platform must support multiple users at a time; in other words, the platform must support
+multithreading.
+It must have a specific communication protocol so that clients can ask for services following
+rules.
+Developers will be able to use the client program to upload/share notes and read notes
+contributed by others. The server will keep track of which user is sharing which notes by
+tagging each note with the IP address and port number of the client program.
+We will use in-memory data structures to store the notes; no persistent storage is necessary at
+this time.
+The server will manage 3 channels for three categories of notes - one for python, one for
+software testing, and the last one for database related notes.
+The channels are named as follows - PY, QA and DB. Channel names are 2 characters long.
+Each channel will hold notes for the topic it is for. So you will have to manage three in-memory
+data structures to hold the notes.
+The server must use utf-8 encoding to store notes.
