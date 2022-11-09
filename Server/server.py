@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 This is a socket server capable of handling multiple clients at once. With three channels for notes : python, software testing, and database.
 There are three commands that can be used to interact with the server: Read (R), Write (W), and Quit (Q).
@@ -12,7 +13,7 @@ __pylint__ = 'v1.8.3'
 import socket
 import sys
 import threading
-import logging as logger
+import logging
 import os
 from datetime import datetime
 
@@ -21,7 +22,6 @@ HOST = '127.0.0.1'
 PORT = 54121
 BUFFER_SIZE = 1024
 ENCODING = 'utf-8'
-
 
 # Global dictionary to store the notes
 #notes = {'python': [], 'software testing': [], 'database': []}
@@ -39,23 +39,30 @@ def main():
     """
     This function will create a socket, bind it to the host and port, and listen for connections.
     """
+
+    logging.basicConfig(filename='server.log', level=logging.INFO)
     # Create a socket
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         # Bind the socket to the host and port
         sock.bind((HOST, PORT))
         # Listen for connections
         sock.listen()
-        # Print a message to the server
+
+        logging.info('Server is running...')
         print('Server is running...')
         # Accept connections
         while True:
-            # Accept a connection
-            connection, address = sock.accept()
-            # Create a new thread for the client
-            ClientThread(connection, address).start()
-            print(f'Client connected at {address}')
+            try:
+                # Accept a connection
+                connection, address = sock.accept()
+                # Create a new thread for the client
+                ClientThread(connection, address).start()
+                logging.info(f'Client connected at {address}')
+            except ConnectionError as e:
+                logging.error(
+                    f'Client disconnected at {address} with error {e}')
 
-##TODO MAKE COMMAND A GLOBAL VARIABLE
+
 class ClientThread(threading.Thread):
     """
     This class will create a thread for each client.
@@ -65,6 +72,7 @@ class ClientThread(threading.Thread):
     connection = None
     address = None
     channel = ''
+
     def __init__(self, connection, address):
         """
         This function will initialize the thread.
@@ -73,7 +81,7 @@ class ClientThread(threading.Thread):
         self.connection = connection
         self.address = address
         self.client_thread()
-    
+
     def client_thread(self):
         """
         This function will handle the client thread.
@@ -87,18 +95,14 @@ class ClientThread(threading.Thread):
         lock.release()
 
         # Log a message to the server
-        print(f'Client {self.num_clients} connected from {self.address[0]}:{self.address[1]}')
-        
-        # Receive the channel from the client
-        self.connection.sendall('Channel'.encode(ENCODING))
-        self.channel = self.connection.recv(BUFFER_SIZE).decode(ENCODING).lower()
-        
-        # Receive read, write, or quit from the client
-        self.get_command()
-        
+        logging.info(
+            f'Client {self.num_clients} connected from {self.address[0]}:{self.address[1]}')
+
+        self.get_channel()
+
         # Add the client to the dictionary
         clients[self.num_clients] = self.connection
-        
+
         connected = True
         # Loop until the client quits
         while connected:
@@ -109,14 +113,16 @@ class ClientThread(threading.Thread):
                 self.send_notes()
             # If the client wants to write to the notes
             elif self.command == 'w' or self.command == 'write':
-                self.connection.sendall('Size'.encode(ENCODING))
                 self.write_notes()
+            elif self.command == 'c' or self.command == 'channel':
+                self.get_channel()
             elif self.command == 'q' or self.command == 'quit':
                 connected = False
             else:
                 # Ask the client to enter a valid command
                 self.connection.sendall('Invalid What'.encode(ENCODING))
-                self.command = self.connection.recv(BUFFER_SIZE).decode(ENCODING).lower()
+                self.command = self.connection.recv(
+                    BUFFER_SIZE).decode(ENCODING).lower()
 
         # Send exit message to client
         self.connection.sendall('exit'.encode(ENCODING))
@@ -127,9 +133,9 @@ class ClientThread(threading.Thread):
         # Unlock the thread
         lock.release()
 
-        # Print a message to the server
-        print(f'Client {num_clients} disconnected from {self.address[0]}:{self.address[1]}')
-        
+        logging.info(
+            f'Client {num_clients} disconnected from {self.address[0]}:{self.address[1]}')
+
         # Close the connection
         self.connection.close()
 
@@ -139,14 +145,23 @@ class ClientThread(threading.Thread):
         """
         # Receive the command from the client
         self.connection.sendall('What'.encode(ENCODING))
-        self.command = self.connection.recv(BUFFER_SIZE).decode(ENCODING).lower()
+        self.command = self.connection.recv(
+            BUFFER_SIZE).decode(ENCODING).lower()
 
+    def get_channel(self):
+        """
+        This function will get the channel from the client.
+        """
+        self.connection.sendall('Channel'.encode(ENCODING))
+        self.channel = self.connection.recv(
+            BUFFER_SIZE).decode(ENCODING).lower()
+        self.get_command()
 
     def write_notes(self):
         """
         This function will write the notes to the client.
         """
-        
+
         # Write the notes to the client
         if self.channel == 'python' or self.channel == 'py':
             self.write_note_to_file('python')
@@ -154,19 +169,35 @@ class ClientThread(threading.Thread):
             self.write_note_to_file('software testing')
         elif self.channel == 'database' or self.channel == 'db':
             self.write_note_to_file('database')
-            
-        self.get_command()
-    
-    def write_note_to_file(self,directory):
+
+    def write_note_to_file(self, directory):
         """
         This function will write the notes to the client.
         """
         size = self.get_size()
         note = self.connection.recv(size).decode(ENCODING)
+
+        filename, content = note.split('<BOF>')
+        filename = os.path.join(directory, filename)
+        filename, file_extension = os.path.splitext(filename)
+        filename = filename + datetime.now().strftime('%Y%m%d%H%M%S') + file_extension
+
+        content.replace('<BOF>', '')
         # Writes note to the file in the passed in directory
-        with open(f'{directory}//{self.address[0]}__{datetime.now()}.txt', 'w', encoding= ENCODING) as file:
-            file.write(note)
-        
+        with open(f'{filename}', 'w', encoding=ENCODING) as file:
+            file.write(content)
+
+        self.get_command()
+
+    def get_size(self) -> int:
+        """
+        This function will get the size of the note from the client.
+        """
+        # Get size from client
+        self.connection.sendall('Size'.encode(ENCODING))
+        size = int(self.connection.recv(BUFFER_SIZE).decode(ENCODING))
+        return size
+
     def send_notes(self):
         """
         This function will send the notes to the client.
@@ -179,51 +210,33 @@ class ClientThread(threading.Thread):
         elif self.channel == 'database' or self.channel == 'db':
             self.read_all_notes_in_channel('database')
 
-        self.get_command()
-
-    def read_all_notes_in_channel(self,directory):
+    def read_all_notes_in_channel(self, directory):
         """
         This function will read all the notes from a specific directory.
         """
         # Read all the notes from the file
-        print('Reading notes...')
+        logging.info('Reading notes... from ' + directory)
         notes = ''
-        for file in os.listdir(f'{directory}'):
-            with open(f'{directory}/{file}', 'r', encoding= ENCODING) as file:
-                note_content = file.read()
-                notes += f'{file.name}<BOF>{note_content}<EOF>'
+        if len(os.listdir(f'{directory}')) == 0:
+            self.connection.sendall('Empty'.encode(ENCODING))
+            logging.info('No notes to read in ' + directory)
 
-        print('Notes read.')
-        self.connection.sendall(f'{notes} <EOT>'.encode(ENCODING))
-        reception = self.connection.recv(BUFFER_SIZE).decode(ENCODING)
-        if reception == 'Received':
-            print('Notes sent.')
         else:
-            print('Error sending notes.')
-        
-    def get_size(self) -> int:
-        """
-        This function will get the size of the note from the client.
-        """
-        valid = False
-        
-        # Get size from client
-        self.connection.sendall('Please enter the size of the data: '.encode(ENCODING))
-        size = self.connection.recv(BUFFER_SIZE).decode(ENCODING)
-        
-        # Loop until the size is valid
-        while not valid:
-            try:
-                size = int(size)
-                if size > 0 & size < 1024:
-                    valid = True
-                elif size > 1024:
-                    self.connection.sendall('Please enter a number within range 0-1024: '.encode(ENCODING))
-                    size = self.connection.recv(BUFFER_SIZE).decode(ENCODING)
-            except ValueError:
-                self.connection.sendall('Please enter a number within range 0-1024 for the size.')
-                size = self.connection.recv(BUFFER_SIZE).decode(ENCODING)
-        return size
+            for file in os.listdir(f'{directory}'):
+
+                with open(f'{directory}/{file}', 'r', encoding=ENCODING) as file:
+                    note_content = file.read()
+                    notes += f'{file.name}<BOF>{note_content}<EOF>'
+
+                logging.debug('Notes read.')
+                self.connection.sendall(f'{notes}<EOT>'.encode(ENCODING))
+                reception = self.connection.recv(BUFFER_SIZE).decode(ENCODING)
+                if reception == 'Received':
+                    logging.info('Notes sent.')
+                else:
+                    logging.debug('Error sending notes.')
+
+        self.get_command()
 
 
 if __name__ == '__main__':

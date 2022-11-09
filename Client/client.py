@@ -1,7 +1,10 @@
-## Client-side for the server.py program
+#!/usr/bin/env python3
 
-# Import the socket module
+# Client-side for the server.py program
+
 import socket
+import os
+
 HOST = '127.0.0.1'
 PORT = 54121
 BUFFER_SIZE = 1024
@@ -19,75 +22,106 @@ def main():
         connected = True
         while connected:
             # Get the message from the server
-            test = sock.recv(BUFFER_SIZE)
-            print(test)
-            print(test.decode(ENCODING))
-            server_Message = test.decode(ENCODING)
+            server_message = sock.recv(BUFFER_SIZE).decode(ENCODING)
             # Display the message from the server to the client
-            if server_Message == 'exit':
+            if server_message == 'exit':
                 connected = False
-            elif server_Message == 'Channel':
+            elif server_message == 'Channel':
                 handle_channel(sock)
-            elif server_Message == 'What':
+            elif server_message == 'What':
                 handle_what(sock)
-            elif server_Message == 'Write':
+            elif server_message == 'Size':
                 handle_write(sock)
-            elif server_Message == 'Read':
+            elif server_message == 'Read':
                 handle_read(sock)
-            elif server_Message == 'Invalid What':
+            elif server_message == 'Invalid What':
                 handle_invalid_what(sock)
 
-            
-            
 
 def handle_channel(sock):
     """
     This function will handle the channel message.
     """
-    client_message = input('Please enter a channel: python(PY), software testing(QA), or database(DB).')
+    client_message = input(
+        'Please enter a channel: python(PY), software testing(QA), or database(DB).')
     sock.sendall(client_message.encode(ENCODING))
-    
+
+
 def handle_what(sock):
     """
     This function will handle the what message.
     """
-    client_message = input('Would you like to Write(W), Read(R) or Quit(Q)?\n')
+    client_message = input('Would you like to Write(W), Read(R), Channel(C) or Quit(Q)?\n')
     sock.sendall(client_message.encode(ENCODING))
+
 
 def handle_invalid_what(sock):
     """
     This function will handle the invalid what message.
     """
-    client_message = input('Please enter a valid command: R, W, or Q \n')
+    client_message = input('Please enter a valid command: R, W, Q, or C \n')
     sock.sendall(client_message.encode(ENCODING))
-    
+
+
 def handle_write(sock):
     """
     This function will handle the write message.
     """
-    client_message = input('Please enter the size of the data: ')
-    sock.sendall(client_message.encode(ENCODING))
+    upload = input('Would you like to upload a file? Y/N:')
+    if upload == 'Y' or upload == 'y':
+        handle_send_from_file(sock)
+    elif upload == 'N' or upload == 'n':
+        content = input('Please enter the note: ')
+        file_name = input('Please enter a file_name for the note: ')
+        note = f'{file_name}<BOF>{content}'
+        sock.sendall(f'{note.__sizeof__()}'.encode(ENCODING))
+        sock.sendall(note.encode(ENCODING))
+    else:
+        print('Invalid input')
+        handle_write(sock)
     
+
+
+def handle_send_from_file(sock):
+    """
+    This function will handle the write message.
+    """
+    file_path = input('Please enter the file path: ')
+    try:
+        with open(os.path.relpath(file_path), 'rb') as file:
+            content = file.read()
+            note = f'{file_path}<BOF>{content}'
+            sock.sendall(f'{note.__sizeof__()}'.encode(ENCODING))
+            sock.sendall(note.encode(ENCODING))
+    except FileNotFoundError:
+        input('File not found. Press enter to continue.')
+        handle_send_from_file(sock)
+
+
 def handle_read(sock):
     """
-    Writes the recieved notes to a file and spceifies the file location. Also prints the notes to the console
+    Writes the recieved notes to a file and spceifies the file location. 
+    Also prints the notes to the console
     """
     notes = ''
     while True:
         stream = sock.recv(BUFFER_SIZE).decode(ENCODING)
         notes += stream
-        if stream.endswith('<EOT>'):
+        if stream.endswith('<EOT>') or stream == 'Empty':
             sock.sendall('Received'.encode(ENCODING))
-            notes.replace('<EOT>','')
+            notes.replace('<EOT>', '')
             break
-    notes = notes.split('<EOF>')
+    if notes == 'Empty':
+        print('No notes found')
+    else:
+        notes = notes.split('<EOF>')
+        for note in notes:
+            file_name, file_content = note.split('<BOF>')
+            print(file_content)
+            filename = file_name.split('/')[1]
+            with open(f'{filename}', 'w', encoding=ENCODING) as file:
+                file.write(file_content)
 
-    for note in notes:
-        file_name, file_content = note.split('<BOF>')
-        print(file_content)
-        filename = file_name.split('/')[1]
-        with open(f'{filename}', 'w', encoding= ENCODING) as file:
-            file.write(file_content)
 
 if __name__ == '__main__':
     main()
