@@ -1,0 +1,28 @@
+INFO:root:Server is running...
+INFO:root:Server is running...
+INFO:root:Server is running...
+INFO:root:20221210200525: Client 1 connected from 127.0.0.1:36800
+INFO:root:Reading notes... from database
+INFO:root:Server is running...
+INFO:root:Server is running...
+INFO:root:20221210201034: Client 1 connected from 127.0.0.1:36956
+INFO:root:Reading notes... from database
+INFO:root:20221210201107: Notes sent.
+ERROR:root:Client disconnected at ('127.0.0.1', 36956) with error [Errno 32] Broken pipe
+INFO:root:20221210201216: Client 1 connected from 127.0.0.1:37038
+INFO:root:Reading notes... from database
+INFO:root:Server is running...
+INFO:root:20221210201425: Client 1 connected from 127.0.0.1:37124
+INFO:root:Reading notes... from database
+INFO:root:20221210201917: Notes sent.
+ERROR:root:Client disconnected at ('127.0.0.1', 37124) with error [Errno 32] Broken pipe
+INFO:root:20221210201917: Client 1 connected from 127.0.0.1:37242
+ERROR:root:Client disconnected at ('127.0.0.1', 37242) with error [Errno 32] Broken pipe
+INFO:root:20221210201949: Client 1 connected from 127.0.0.1:37278
+INFO:root:Reading notes... from database
+INFO:root:20221210202009: Notes sent.
+ERROR:root:Client disconnected at ('127.0.0.1', 37278) with error [Errno 32] Broken pipe
+INFO:root:20221210202017: Client 1 connected from 127.0.0.1:37296
+INFO:root:Reading notes... from database
+INFO:root:Server is running...
+INFO:root:20221210204118: Client 1 connected from 127.0.0.1:37974
