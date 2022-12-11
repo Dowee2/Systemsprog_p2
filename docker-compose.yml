@@ -1,0 +1,8 @@
+version: '3.4'
+
+services:
+  systemsprogp2:
+    image: systemsprogp2
+    build:
+      context: .
+      dockerfile: ./Dockerfile
