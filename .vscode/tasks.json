@@ -19,7 +19,7 @@
 				"docker-build"
 			],
 			"python": {
-				"file": "Server\\server.py"
+				"file": "Server/server.py"
 			}
 		}
 	]

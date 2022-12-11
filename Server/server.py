@@ -50,6 +50,7 @@ def main():
 
         logging.info('Server is running...')
         print('Server is running...')
+        print(HOST, PORT)
         # Accept connections
         while True:
             try:
@@ -95,7 +96,7 @@ class ClientThread(threading.Thread):
         lock.release()
 
         # Log a message to the server
-        logging.info(datetime.now().strftime('%Y%m%d%H%M%S') + 
+        logging.info(datetime.now().strftime('%Y/%m/%d/%H%:M%:S') + 
             f': Client {self.num_clients} connected from {self.address[0]}:{self.address[1]}')
 
         self.get_channel()
@@ -106,6 +107,7 @@ class ClientThread(threading.Thread):
         connected = True
         # Loop until the client quits
         while connected:
+            print(self.command)
             # If the client wants to read the notes
             if  self.command == 'read':
                 # Send the notes to the client
@@ -182,13 +184,13 @@ class ClientThread(threading.Thread):
         filename, file_extension = os.path.splitext(filename)
         if file_extension.strip() == '':
             file_extension = '.txt'
-        filename = filename + datetime.now().strftime('%Y%m%d%H%M%S') + file_extension
+        filename = filename + datetime.now().strftime('%Y/%m/%d/%H%:M%:S') + file_extension
 
         content.replace('<BOF>', '')
         # Writes note to the file in the passed in directory
         with open(f'{filename}', 'w', encoding=ENCODING) as file:
             file.write(content)
-            logging.info(datetime.now().strftime('%Y%m%d%H%M%S')+ ': Note: ' + filename + file_extension + "has been added in directory: " + directory)
+            logging.info(datetime.now().strftime('%Y/%m/%d/%H%:M%:S')+ ': Note: ' + filename + file_extension + "has been added in directory: " + directory)
 
         self.get_command()
 
@@ -221,7 +223,7 @@ class ClientThread(threading.Thread):
         notes = ''
         if len(os.listdir(directory)) == 0:
             self.connection.sendall('Empty'.encode(ENCODING))
-            logging.info(datetime.now().strftime('%Y%m%d%H%M%S')+ ': No notes to read in ' + directory)
+            logging.info(datetime.now().strftime('%Y/%m/%d/%H%:M%:S')+ ': No notes to read in ' + directory)
             
         else:
 
@@ -235,9 +237,9 @@ class ClientThread(threading.Thread):
             self.connection.sendall(f'{notes}<EOT>'.encode(ENCODING))
             reception = self.connection.recv(BUFFER_SIZE).decode(ENCODING)
             if reception == 'Received':
-                logging.info(datetime.now().strftime('%Y%m%d%H%M%S')+ ': Notes sent.')
+                logging.info(datetime.now().strftime('%Y/%m/%d/%H%:M%:S')+ ': Notes sent.')
             else:
-                logging.debug(datetime.now().strftime('%Y%m%d%H%M%S')+ '; Error sending notes.')
+                logging.debug(datetime.now().strftime('%Y/%m/%d/%H%:M%:S')+ '; Error sending notes.')
 
         self.get_command()
 

@@ -23,19 +23,19 @@ def main():
         connected = True
         while connected:
             # Get the message from the server
-            server_message = sock.recv(BUFFER_SIZE).decode(ENCODING)
+            server_message = sock.recv(BUFFER_SIZE).decode(ENCODING).lower()
             # Display the message from the server to the client
             if server_message == 'exit':
                 connected = False
-            elif server_message == 'Channel':
+            elif server_message == 'channel':
                 handle_channel(sock)
-            elif server_message == 'What':
+            elif server_message == 'what':
                 handle_what(sock)
-            elif server_message == 'Size':
+            elif server_message == 'size':
                 handle_write(sock)
-            elif server_message == 'Read':
+            elif server_message == 'read':
                 handle_read(sock)
-            elif server_message == 'Empty':
+            elif server_message == 'empty':
                 print('No notes in this Directory')
                 input()
                 handle_what(sock)
