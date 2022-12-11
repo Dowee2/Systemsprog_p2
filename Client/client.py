@@ -6,7 +6,8 @@ import socket
 import os
 
 HOST = '127.0.0.1'
-PORT = 54121
+PORT = 5412
+
 BUFFER_SIZE = 1024
 ENCODING = 'utf-8'
 
@@ -34,8 +35,13 @@ def main():
                 handle_write(sock)
             elif server_message == 'Read':
                 handle_read(sock)
-            elif server_message == 'Invalid What':
+            elif server_message == 'Empty':
+                print('No notes in this Directory')
+                input()
+                handle_what(sock)
+            else:
                 handle_invalid_what(sock)
+                
 
 
 def handle_channel(sock):
@@ -51,7 +57,7 @@ def handle_what(sock):
     """
     This function will handle the what message.
     """
-    client_message = input('Would you like to Write(W), Read(R), Channel(C) or Quit(Q)?\n')
+    client_message = input('Would you like to Write(WRIT), Read, Channel(Chan) or Quit?\n')
     sock.sendall(client_message.encode(ENCODING))
 
 
@@ -59,7 +65,7 @@ def handle_invalid_what(sock):
     """
     This function will handle the invalid what message.
     """
-    client_message = input('Please enter a valid command: R, W, Q, or C \n')
+    client_message = input('Please enter a valid command: Read, WRIT, Quit, or Chan \n')
     sock.sendall(client_message.encode(ENCODING))
 
 
@@ -98,6 +104,7 @@ def handle_send_from_file(sock):
         handle_send_from_file(sock)
 
 
+
 def handle_read(sock):
     """
     Writes the recieved notes to a file and spceifies the file location. 
@@ -107,16 +114,21 @@ def handle_read(sock):
     while True:
         stream = sock.recv(BUFFER_SIZE).decode(ENCODING)
         notes += stream
-        if stream.endswith('<EOT>') or stream == 'Empty':
+        if stream.endswith('<EOT>') or stream == 'EmptyWhat':
             sock.sendall('Received'.encode(ENCODING))
-            notes.replace('<EOT>', '')
+            notes = notes.replace('<EOT>', '')
             break
-    if notes == 'Empty':
+    if notes == 'EmptyWhat':
         print('No notes found')
+        input()
+        handle_what(sock)
     else:
         notes = notes.split('<EOF>')
         for note in notes:
+            if note == '':
+                continue
             file_name, file_content = note.split('<BOF>')
+
             print(file_content)
             filename = file_name.split('/')[1]
             with open(f'{filename}', 'w', encoding=ENCODING) as file:

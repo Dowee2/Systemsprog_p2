@@ -19,7 +19,7 @@ from datetime import datetime
 
 # Global variables
 HOST = '127.0.0.1'
-PORT = 54121
+PORT = 5412
 BUFFER_SIZE = 1024
 ENCODING = 'utf-8'
 
@@ -95,8 +95,8 @@ class ClientThread(threading.Thread):
         lock.release()
 
         # Log a message to the server
-        logging.info(
-            f'Client {self.num_clients} connected from {self.address[0]}:{self.address[1]}')
+        logging.info(datetime.now().strftime('%Y%m%d%H%M%S') + 
+            f': Client {self.num_clients} connected from {self.address[0]}:{self.address[1]}')
 
         self.get_channel()
 
@@ -107,16 +107,16 @@ class ClientThread(threading.Thread):
         # Loop until the client quits
         while connected:
             # If the client wants to read the notes
-            if self.command == 'r' or self.command == 'read':
+            if  self.command == 'read':
                 # Send the notes to the client
                 self.connection.sendall('Read'.encode(ENCODING))
                 self.send_notes()
             # If the client wants to write to the notes
-            elif self.command == 'w' or self.command == 'write':
+            elif self.command == 'writ':
                 self.write_notes()
-            elif self.command == 'c' or self.command == 'channel':
+            elif self.command == 'chan':
                 self.get_channel()
-            elif self.command == 'q' or self.command == 'quit':
+            elif self.command == 'quit':
                 connected = False
             else:
                 # Ask the client to enter a valid command
@@ -180,12 +180,15 @@ class ClientThread(threading.Thread):
         filename, content = note.split('<BOF>')
         filename = os.path.join(directory, filename)
         filename, file_extension = os.path.splitext(filename)
+        if file_extension.strip() == '':
+            file_extension = '.txt'
         filename = filename + datetime.now().strftime('%Y%m%d%H%M%S') + file_extension
 
         content.replace('<BOF>', '')
         # Writes note to the file in the passed in directory
         with open(f'{filename}', 'w', encoding=ENCODING) as file:
             file.write(content)
+            logging.info(datetime.now().strftime('%Y%m%d%H%M%S')+ ': Note: ' + filename + file_extension + "has been added in directory: " + directory)
 
         self.get_command()
 
@@ -193,7 +196,6 @@ class ClientThread(threading.Thread):
         """
         This function will get the size of the note from the client.
         """
-        # Get size from client
         self.connection.sendall('Size'.encode(ENCODING))
         size = int(self.connection.recv(BUFFER_SIZE).decode(ENCODING))
         return size
@@ -217,24 +219,25 @@ class ClientThread(threading.Thread):
         # Read all the notes from the file
         logging.info('Reading notes... from ' + directory)
         notes = ''
-        if len(os.listdir(f'{directory}')) == 0:
+        if len(os.listdir(directory)) == 0:
             self.connection.sendall('Empty'.encode(ENCODING))
-            logging.info('No notes to read in ' + directory)
-
+            logging.info(datetime.now().strftime('%Y%m%d%H%M%S')+ ': No notes to read in ' + directory)
+            
         else:
+
             for file in os.listdir(f'{directory}'):
 
                 with open(f'{directory}/{file}', 'r', encoding=ENCODING) as file:
                     note_content = file.read()
                     notes += f'{file.name}<BOF>{note_content}<EOF>'
 
-                logging.debug('Notes read.')
-                self.connection.sendall(f'{notes}<EOT>'.encode(ENCODING))
-                reception = self.connection.recv(BUFFER_SIZE).decode(ENCODING)
-                if reception == 'Received':
-                    logging.info('Notes sent.')
-                else:
-                    logging.debug('Error sending notes.')
+            logging.debug('Notes read.')
+            self.connection.sendall(f'{notes}<EOT>'.encode(ENCODING))
+            reception = self.connection.recv(BUFFER_SIZE).decode(ENCODING)
+            if reception == 'Received':
+                logging.info(datetime.now().strftime('%Y%m%d%H%M%S')+ ': Notes sent.')
+            else:
+                logging.debug(datetime.now().strftime('%Y%m%d%H%M%S')+ '; Error sending notes.')
 
         self.get_command()
 
